@@ -53,7 +53,8 @@ from sympy.functions import (Abs, Chi, Ci, Ei, KroneckerDelta,
     bernoulli, fibonacci, tribonacci, lucas, stieltjes, mathieuc, mathieus,
     mathieusprime, mathieucprime)
 
-from sympy.matrices import Adjoint, Inverse, MatrixSymbol, Transpose, KroneckerProduct
+from sympy.matrices import (Adjoint, Inverse, MatrixSymbol, Transpose,
+                            KroneckerProduct, BlockMatrix, OneMatrix, ZeroMatrix)
 from sympy.matrices.expressions import hadamard_power
 
 from sympy.physics import mechanics
@@ -75,7 +76,7 @@ from sympy.tensor.functions import TensorProduct
 from sympy.tensor.tensor import (TensorIndexType, tensor_indices, TensorHead,
                                  TensorElement, tensor_heads)
 
-from sympy.testing.pytest import raises, _both_exp_pow
+from sympy.testing.pytest import raises, _both_exp_pow, warns_deprecated_sympy
 
 from sympy.vector import CoordSys3D, Gradient, Curl, Divergence, Dot, Cross, Laplacian
 
@@ -409,6 +410,17 @@ def test_pretty_Permutation():
     assert xpretty(p1, perm_cyclic=False, use_unicode=False) == \
     "/0 1 2 3 4\\\n"\
     "\\0 2 1 4 3/"
+
+    with warns_deprecated_sympy():
+        old_print_cyclic = Permutation.print_cyclic
+        Permutation.print_cyclic = False
+        assert xpretty(p1, use_unicode=True) == \
+        '⎛0 1 2 3 4⎞\n'\
+        '⎝0 2 1 4 3⎠'
+        assert xpretty(p1, use_unicode=False) == \
+        "/0 1 2 3 4\\\n"\
+        "\\0 2 1 4 3/"
+        Permutation.print_cyclic = old_print_cyclic
 
 
 def test_pretty_basic():
@@ -3661,6 +3673,60 @@ def test_Adjoint():
         '⎛⎡1  2⎤    ⎞ \n'\
         '⎜⎢    ⎥ + X⎟ \n'\
         '⎝⎣3  4⎦    ⎠ '
+    assert upretty(Adjoint(BlockMatrix(((OneMatrix(2, 2), X),
+                                        (m, ZeroMatrix(2, 2)))))) == \
+        '           †\n'\
+        '⎡  𝟙     X⎤ \n'\
+        '⎢         ⎥ \n'\
+        '⎢⎡1  2⎤   ⎥ \n'\
+        '⎢⎢    ⎥  𝟘⎥ \n'\
+        '⎣⎣3  4⎦   ⎦ '
+
+
+def test_Transpose():
+    X = MatrixSymbol('X', 2, 2)
+    Y = MatrixSymbol('Y', 2, 2)
+    assert pretty(Transpose(X)) == " T\nX "
+    assert pretty(Transpose(X + Y)) == "       T\n(X + Y) "
+    assert pretty(Transpose(X) + Transpose(Y)) == " T    T\nX  + Y "
+    assert pretty(Transpose(X*Y)) == "     T\n(X*Y) "
+    assert pretty(Transpose(Y)*Transpose(X)) == " T  T\nY *X "
+    assert pretty(Transpose(X**2)) == "    T\n/ 2\\ \n\\X / "
+    assert pretty(Transpose(X)**2) == "    2\n/ T\\ \n\\X / "
+    assert pretty(Transpose(Inverse(X))) == "     T\n/ -1\\ \n\\X  / "
+    assert pretty(Inverse(Transpose(X))) == "    -1\n/ T\\  \n\\X /  "
+    assert upretty(Transpose(X)) == " T\nX "
+    assert upretty(Transpose(X + Y)) == "       T\n(X + Y) "
+    assert upretty(Transpose(X) + Transpose(Y)) == " T    T\nX  + Y "
+    assert upretty(Transpose(X*Y)) == "     T\n(X⋅Y) "
+    assert upretty(Transpose(Y)*Transpose(X)) == " T  T\nY ⋅X "
+    assert upretty(Transpose(X**2)) == \
+        "    T\n⎛ 2⎞ \n⎝X ⎠ "
+    assert upretty(Transpose(X)**2) == \
+        "    2\n⎛ T⎞ \n⎝X ⎠ "
+    assert upretty(Transpose(Inverse(X))) == \
+        "     T\n⎛ -1⎞ \n⎝X  ⎠ "
+    assert upretty(Inverse(Transpose(X))) == \
+        "    -1\n⎛ T⎞  \n⎝X ⎠  "
+    m = Matrix(((1, 2), (3, 4)))
+    assert upretty(Transpose(m)) == \
+        '      T\n'\
+        '⎡1  2⎤ \n'\
+        '⎢    ⎥ \n'\
+        '⎣3  4⎦ '
+    assert upretty(Transpose(m+X)) == \
+        '            T\n'\
+        '⎛⎡1  2⎤    ⎞ \n'\
+        '⎜⎢    ⎥ + X⎟ \n'\
+        '⎝⎣3  4⎦    ⎠ '
+    assert upretty(Transpose(BlockMatrix(((OneMatrix(2, 2), X),
+                                          (m, ZeroMatrix(2, 2)))))) == \
+        '           T\n'\
+        '⎡  𝟙     X⎤ \n'\
+        '⎢         ⎥ \n'\
+        '⎢⎡1  2⎤   ⎥ \n'\
+        '⎢⎢    ⎥  𝟘⎥ \n'\
+        '⎣⎣3  4⎦   ⎦ '
 
 
 def test_pretty_Trace_issue_9044():
@@ -3803,6 +3869,30 @@ def test_pretty_dotproduct():
     assert pretty(DotProduct(C, D)) == "[1  2  3]*[1  3  4]"
     assert upretty(DotProduct(A, B)) == "A⋅B"
     assert upretty(DotProduct(C, D)) == "[1  2  3]⋅[1  3  4]"
+
+
+def test_pretty_Determinant():
+    from sympy.matrices import Determinant, Inverse, BlockMatrix, OneMatrix, ZeroMatrix
+    m = Matrix(((1, 2), (3, 4)))
+    assert upretty(Determinant(m)) == '│1  2│\n│    │\n│3  4│'
+    assert upretty(Determinant(Inverse(m))) == \
+        '│      -1│\n'\
+        '│⎡1  2⎤  │\n'\
+        '│⎢    ⎥  │\n'\
+        '│⎣3  4⎦  │'
+    X = MatrixSymbol('X', 2, 2)
+    assert upretty(Determinant(X)) == '│X│'
+    assert upretty(Determinant(X + m)) == \
+        '│⎡1  2⎤    │\n'\
+        '│⎢    ⎥ + X│\n'\
+        '│⎣3  4⎦    │'
+    assert upretty(Determinant(BlockMatrix(((OneMatrix(2, 2), X),
+                                            (m, ZeroMatrix(2, 2)))))) == \
+        '│  𝟙     X│\n'\
+        '│         │\n'\
+        '│⎡1  2⎤   │\n'\
+        '│⎢    ⎥  𝟘│\n'\
+        '│⎣3  4⎦   │'
 
 
 def test_pretty_piecewise():
@@ -7681,7 +7771,6 @@ def test_Str():
     assert pretty(Str('x')) == 'x'
 
 
-
 def test_symbolic_probability():
     mu = symbols("mu")
     sigma = symbols("sigma", positive=True)
@@ -7722,3 +7811,15 @@ def test_diffgeom():
     assert pretty(rect) == "rect"
     b = BaseScalarField(rect, 0)
     assert pretty(b) == "x"
+
+def test_deprecated_prettyForm():
+    with warns_deprecated_sympy():
+        from sympy.printing.pretty.pretty_symbology import xstr
+        assert xstr(1) == '1'
+
+    with warns_deprecated_sympy():
+        from sympy.printing.pretty.stringpict import prettyForm
+        p = prettyForm('s', unicode='s')
+
+    with warns_deprecated_sympy():
+        assert p.unicode == p.s == 's'

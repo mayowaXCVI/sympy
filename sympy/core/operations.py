@@ -1,8 +1,8 @@
+from __future__ import annotations
 from operator import attrgetter
-from typing import Tuple as tTuple, Type
 from collections import defaultdict
 
-from sympy.utilities.exceptions import SymPyDeprecationWarning
+from sympy.utilities.exceptions import sympy_deprecation_warning
 
 from .sympify import _sympify as _sympify_, sympify
 from .basic import Basic
@@ -27,6 +27,12 @@ class AssocOp(Basic):
     This is an abstract base class, concrete derived classes must define
     the attribute `identity`.
 
+    .. deprecated:: 1.7
+
+       Using arguments that aren't subclasses of :class:`~.Expr` in core
+       operators (:class:`~.Mul`, :class:`~.Add`, and :class:`~.Pow`) is
+       deprecated. See :ref:`non-expr-args-deprecated` for details.
+
     Parameters
     ==========
 
@@ -39,9 +45,9 @@ class AssocOp(Basic):
 
     # for performance reason, we don't let is_commutative go to assumptions,
     # and keep it right here
-    __slots__ = ('is_commutative',)  # type: tTuple[str, ...]
+    __slots__: tuple[str, ...] = ('is_commutative',)
 
-    _args_type = None  # type: Type[Basic]
+    _args_type: type[Basic] | None = None
 
     @cacheit
     def __new__(cls, *args, evaluate=None, _sympify=True):
@@ -58,13 +64,22 @@ class AssocOp(Basic):
                 raise TypeError("Relational cannot be used in %s" % cls.__name__)
 
             # This should raise TypeError once deprecation period is over:
-            if not all(isinstance(arg, typ) for arg in args):
-                SymPyDeprecationWarning(
-                    feature="Add/Mul with non-Expr args",
-                    useinstead="Expr args",
-                    issue=19445,
-                    deprecated_since_version="1.7"
-                ).warn()
+            for arg in args:
+                if not isinstance(arg, typ):
+                    sympy_deprecation_warning(
+                        f"""
+
+Using non-Expr arguments in {cls.__name__} is deprecated (in this case, one of
+the arguments has type {type(arg).__name__!r}).
+
+If you really did intend to use a multiplication or addition operation with
+this object, use the * or + operator instead.
+
+                        """,
+                        deprecated_since_version="1.7",
+                        active_deprecations_target="non-expr-args-deprecated",
+                        stacklevel=4,
+                    )
 
         if evaluate is None:
             evaluate = global_parameters.evaluate
@@ -220,7 +235,7 @@ class AssocOp(Basic):
             return None
 
         if repl_dict is None:
-            repl_dict = dict()
+            repl_dict = {}
 
         # handle simple patterns
         if self == expr:

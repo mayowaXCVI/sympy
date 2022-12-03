@@ -93,7 +93,7 @@ def styleof(expr, styles=default_styles):
     >>> styleof(x + 1, styles)  # this is an Expr
     {'color': 'black', 'shape': 'ellipse'}
     """
-    style = dict()
+    style = {}
     for typ, sty in styles:
         if isinstance(expr, typ):
             style.update(sty)
@@ -247,7 +247,7 @@ def dotprint(expr,
     Examples
     ========
 
-    >>> from sympy.printing.dot import dotprint
+    >>> from sympy import dotprint
     >>> from sympy.abc import x
     >>> print(dotprint(x+2)) # doctest: +NORMALIZE_WHITESPACE
     digraph{

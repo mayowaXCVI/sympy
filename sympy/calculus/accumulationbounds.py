@@ -153,7 +153,7 @@ class AccumulationBounds(Expr):
     AccumBounds(0, 1)
 
     Some symbol in an expression can be substituted for a AccumulationBounds
-    object. But it doesn't necessarily evaluate the AccumulationBounds for
+    object. But it does not necessarily evaluate the AccumulationBounds for
     that expression.
 
     The same expression can be evaluated to different values depending upon
@@ -523,7 +523,7 @@ class AccumulationBounds(Expr):
                             return AccumBounds(self.max**other, oo)
                         if self.max.is_zero:
                             return AccumBounds(self.min**other, oo)
-                        return AccumBounds(0, oo)
+                        return (1/self)**(-other)
                     return AccumBounds(
                         S.Zero, Max(self.min**other, self.max**other))
                 elif other % 2 == 1:
@@ -532,7 +532,7 @@ class AccumulationBounds(Expr):
                             return AccumBounds(self.max**other, oo)
                         if self.max.is_zero:
                             return AccumBounds(-oo, self.min**other)
-                        return AccumBounds(-oo, oo)
+                        return (1/self)**(-other)
                     return AccumBounds(self.min**other, self.max**other)
 
             # non-integer exponent

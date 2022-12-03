@@ -19,6 +19,7 @@ encoding_header_re = re.compile(
 unicode_whitelist = [
     # Author names can include non-ASCII characters
     r'*/bin/authors_update.py',
+    r'*/bin/mailmap_check.py',
 
     # These files have functions and test functions for unicode input and
     # output.
@@ -47,6 +48,8 @@ unicode_whitelist = [
 
 unicode_strict_whitelist = [
     r'*/sympy/parsing/latex/_antlr/__init__.py',
+    # test_mathematica.py uses some unicode for testing Greek characters are working #24055
+    r'*/sympy/parsing/tests/test_mathematica.py',
 ]
 
 

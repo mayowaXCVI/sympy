@@ -1,4 +1,4 @@
-r"""Module that defines indexed objects
+r"""Module that defines indexed objects.
 
 The classes ``IndexedBase``, ``Indexed``, and ``Idx`` represent a
 matrix element ``M[i, j]`` as in the following diagram::
@@ -164,6 +164,8 @@ class Indexed(Expr):
                 return base[args[0]]
             else:
                 return base[args]
+
+        base = _sympify(base)
 
         obj = Expr.__new__(cls, base, *args, **kw_args)
 
@@ -349,10 +351,14 @@ class Indexed(Expr):
 
     @property
     def expr_free_symbols(self):
-        from sympy.utilities.exceptions import SymPyDeprecationWarning
-        SymPyDeprecationWarning(feature="expr_free_symbols method",
-                                issue=21494,
-                                deprecated_since_version="1.9").warn()
+        from sympy.utilities.exceptions import sympy_deprecation_warning
+        sympy_deprecation_warning("""
+        The expr_free_symbols property is deprecated. Use free_symbols to get
+        the free symbols of an expression.
+        """,
+            deprecated_since_version="1.9",
+            active_deprecations_target="deprecated-expr-free-symbols")
+
         return {self}
 
 
